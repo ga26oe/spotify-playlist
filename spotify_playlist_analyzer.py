@@ -3,15 +3,7 @@ from dotenv import load_dotenv
 from googleapiclient.discovery import build
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-
-# Load environment variables
-load_dotenv()
-
-# Spotify API setup
-spotify_client_id = os.getenv('SPOTIFY_CLIENT_ID')
-spotify_client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
-spotify_client_credentials_manager = SpotifyClientCredentials(client_id=spotify_client_id, client_secret=spotify_client_secret)
-sp = spotipy.Spotify(client_credentials_manager=spotify_client_credentials_manager)
+import pandas as pd
 
 # Load environment variables
 load_dotenv()
@@ -45,12 +37,18 @@ def get_youtube_comments(video_id):
             videoId=video_id,
             textFormat="plainText",
             order="relevance",
-            maxResults=10
+            maxResults=100
         ).execute()
         
-        for item in results["items"]:
-            comment = item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
-            comments.append(comment)
+        for item in results['items']:
+            comment = item['snippet']['topLevelComment']['snippet']
+            comments.append([
+                comment['authorDisplayName'],
+                comment['publishedAt'],
+                comment['updatedAt'],
+                comment['likeCount'],
+                comment['textDisplay']
+            ])
     except Exception as e:
         print(f"An error occurred: {e}")
     
@@ -76,9 +74,10 @@ def main():
         print(f"Found YouTube video: {video_title}")
         
         comments = get_youtube_comments(video_id)
+        df = pd.DataFrame(comments, columns=['author', 'published_at', 'updated_at', 'like_count', 'text'])
+        
         print("\nTop YouTube comments:")
-        for i, comment in enumerate(comments, 1):
-            print(f"{i}. {comment}\n")
+        print(df.to_string(index=False))
     else:
         print("No YouTube video found for this track.")
 
